@@ -1,0 +1,623 @@
+/* level-system.css - Стили для системы уровней Quantum Messenger */
+
+/* Бейдж уровня */
+.level-badge {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    margin-left: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+    backdrop-filter: blur(10px);
+}
+
+.level-badge:hover {
+    background: rgba(0, 0, 0, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.rank-info, .coins-info {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 8px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.rank-info:hover, .coins-info:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.05);
+}
+
+.level-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    min-width: 60px;
+}
+
+.level-text {
+    font-weight: bold;
+    font-size: 11px;
+    background: linear-gradient(45deg, #00b894, #00cec9);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.xp-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    width: 100%;
+}
+
+.xp-bar {
+    width: 40px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.xp-progress {
+    height: 100%;
+    background: linear-gradient(90deg, #00b894, #00cec9);
+    border-radius: 2px;
+    transition: width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative;
+}
+
+.xp-progress::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 10px;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+    animation: shimmer 2s infinite;
+}
+
+.xp-text {
+    font-size: 9px;
+    opacity: 0.8;
+    min-width: 35px;
+    text-align: right;
+}
+
+.rank-icon, .coins-icon {
+    font-size: 14px;
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.3));
+}
+
+.rank-name {
+    font-size: 10px;
+    font-weight: bold;
+    background: linear-gradient(45deg, #ffeaa7, #fab1a0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.coins-amount {
+    font-size: 10px;
+    font-weight: bold;
+    color: #ffeaa7;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Анимации */
+.xp-popup {
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(50, 50, 50, 0.9));
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-size: 10px;
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    pointer-events: none;
+    white-space: nowrap;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    z-index: 100;
+}
+
+.xp-popup.show {
+    opacity: 1;
+    top: -45px;
+}
+
+.xp-icon {
+    color: #ffeaa7;
+    animation: spin 1s ease;
+}
+
+.xp-amount {
+    font-weight: bold;
+    color: #00b894;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.xp-reason {
+    opacity: 0.8;
+    font-size: 9px;
+    font-style: italic;
+}
+
+.coins-animation {
+    position: absolute;
+    top: -25px;
+    right: 0;
+    opacity: 0;
+    transition: all 0.4s ease;
+    z-index: 50;
+}
+
+.coins-animation.show {
+    opacity: 1;
+    top: -40px;
+}
+
+.coins-content {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.3), rgba(255, 152, 0, 0.3));
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    border: 1px solid rgba(255, 193, 7, 0.5);
+    backdrop-filter: blur(5px);
+}
+
+.coins-animation .coins-icon {
+    animation: bounce 0.5s ease;
+}
+
+/* Модальное окно уровней */
+.level-modal-content {
+    max-width: 420px;
+    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(20px);
+    animation: modalSlideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.level-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.level-modal-header h3 {
+    background: linear-gradient(45deg, #00b894, #00cec9);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0;
+    font-size: 1.4em;
+}
+
+.modal-close {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: var(--text-color);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.modal-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: rotate(90deg);
+}
+
+.level-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    text-align: left;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.stat-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.stat-icon {
+    font-size: 28px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.stat-value {
+    font-size: 20px;
+    font-weight: bold;
+    background: linear-gradient(45deg, #ffeaa7, #fab1a0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.stat-label {
+    font-size: 11px;
+    opacity: 0.8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.progress-section {
+    margin-bottom: 25px;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.xp-bar-large {
+    width: 100%;
+    height: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    overflow: hidden;
+    margin-bottom: 8px;
+    position: relative;
+}
+
+.xp-progress-large {
+    height: 100%;
+    background: linear-gradient(90deg, #00b894, #00cec9, #00b894);
+    border-radius: 5px;
+    transition: width 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative;
+}
+
+.xp-progress-large::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 20px;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+    animation: shimmer 3s infinite;
+}
+
+.progress-percentage {
+    text-align: right;
+    font-size: 12px;
+    opacity: 0.8;
+    font-weight: 600;
+}
+
+.next-rank-section {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 25px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.next-rank-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    animation: shine 3s infinite;
+}
+
+.next-rank-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.next-rank-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.next-rank-icon {
+    font-size: 24px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.next-rank-name {
+    font-weight: bold;
+    font-size: 16px;
+    background: linear-gradient(45deg, #74b9ff, #0984e3);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.levels-remaining {
+    font-size: 12px;
+    opacity: 0.8;
+    font-style: italic;
+}
+
+.level-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.level-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 15px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: var(--text-color);
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.level-action-btn:hover {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.1));
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.level-action-btn:active {
+    transform: translateY(-1px);
+}
+
+/* Анимация повышения уровня */
+.level-up-animation {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10000;
+    pointer-events: none;
+}
+
+.level-up-content {
+    background: linear-gradient(135deg, #6a11cb, #2575fc, #6a11cb);
+    padding: 40px 50px;
+    border-radius: 25px;
+    text-align: center;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6);
+    position: relative;
+    overflow: hidden;
+    animation: levelUpScale 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(20px);
+}
+
+.confetti {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text x="10" y="20" font-size="8">🎉</text><text x="30" y="40" font-size="6">✨</text><text x="70" y="30" font-size="10">⭐</text><text x="50" y="70" font-size="7">🎊</text><text x="80" y="80" font-size="9">💫</text></svg>') repeat;
+    opacity: 0.4;
+    animation: confettiFall 3s linear infinite;
+}
+
+.level-up-icon {
+    font-size: 60px;
+    margin-bottom: 15px;
+    animation: bounce 1s infinite, glow 2s infinite alternate;
+    filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.5));
+}
+
+.level-up-text {
+    position: relative;
+    z-index: 2;
+}
+
+.level-up-title {
+    font-size: 22px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    background: linear-gradient(45deg, #ffeaa7, #ffd700);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.level-up-numbers {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    font-size: 28px;
+}
+
+.old-level {
+    opacity: 0.7;
+    font-size: 24px;
+}
+
+.arrow {
+    animation: pulse 1s infinite;
+    font-size: 32px;
+    color: #ffeaa7;
+}
+
+.new-level {
+    font-size: 36px;
+    font-weight: bold;
+    color: #ffeaa7;
+    animation: glow 1s infinite alternate, bounce 0.5s ease 3;
+    text-shadow: 0 2px 10px rgba(255, 234, 167, 0.5);
+}
+
+.fade-out {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+    transition: all 0.5s ease;
+}
+
+/* Ключевые кадры анимаций */
+@keyframes modalSlideIn {
+    0% { transform: translateY(-50px) scale(0.8); opacity: 0; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(400%); }
+}
+
+@keyframes shine {
+    0% { left: -100%; }
+    100% { left: 200%; }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg) scale(0.5); }
+    50% { transform: rotate(180deg) scale(1.2); }
+    100% { transform: rotate(360deg) scale(1); }
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-15px); }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.1); }
+}
+
+@keyframes glow {
+    0% { text-shadow: 0 0 5px #ffeaa7, 0 0 10px #ffd700; }
+    100% { text-shadow: 0 0 15px #ffeaa7, 0 0 30px #ffd700, 0 0 45px #ff6b6b; }
+}
+
+@keyframes levelUpScale {
+    0% { transform: translate(-50%, -50%) scale(0) rotate(-180deg); opacity: 0; }
+    70% { transform: translate(-50%, -50%) scale(1.1) rotate(10deg); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+}
+
+@keyframes confettiFall {
+    0% { transform: translateY(-100%) rotate(0deg); }
+    100% { transform: translateY(100%) rotate(360deg); }
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .level-badge {
+        flex-direction: column;
+        gap: 8px;
+        padding: 6px 10px;
+        min-width: 80px;
+    }
+    
+    .level-stats {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .level-actions {
+        grid-template-columns: 1fr;
+    }
+    
+    .level-up-content {
+        padding: 30px 20px;
+        margin: 20px;
+    }
+    
+    .level-up-numbers {
+        flex-direction: column;
+        gap: 10px;
+    }
+}
+
+/* Темная тема */
+@media (prefers-color-scheme: dark) {
+    .level-badge {
+        background: rgba(255, 255, 255, 0.1);
+    }
+    
+    .level-modal-content {
+        background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+    }
+}
+
+/* Анимация появления */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.level-badge {
+    animation: fadeInUp 0.6s ease;
+}
