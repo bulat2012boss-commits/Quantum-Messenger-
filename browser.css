@@ -1,0 +1,184 @@
+/* Стили для встроенного браузера Quantum Messenger */
+
+.browser-modal-content {
+    width: 95%;
+    height: 90%;
+    max-width: 1200px;
+    display: flex;
+    flex-direction: column;
+    background: var(--primary-bg);
+}
+
+.browser-header {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    background: var(--header-bg);
+    border-bottom: 1px solid var(--border-color);
+    gap: 10px;
+}
+
+.browser-controls {
+    display: flex;
+    gap: 5px;
+}
+
+.browser-btn {
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: var(--action-btn-bg);
+    color: var(--action-btn-color);
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.browser-btn:hover:not(:disabled) {
+    background: var(--message-bg);
+    color: white;
+    transform: scale(1.05);
+}
+
+.browser-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.browser-close-btn {
+    background: rgba(255, 100, 100, 0.2);
+    color: #ff6464;
+}
+
+.browser-close-btn:hover {
+    background: #ff6464;
+    color: white;
+}
+
+.browser-url-bar {
+    flex: 1;
+    display: flex;
+    gap: 5px;
+}
+
+.browser-url-bar input {
+    flex: 1;
+    padding: 10px 15px;
+    background: var(--input-bg);
+    color: var(--input-color);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    font-size: 14px;
+    outline: none;
+}
+
+.browser-url-bar input:focus {
+    border-color: #4facfe;
+    box-shadow: 0 0 0 2px rgba(79, 172, 254, 0.2);
+}
+
+.browser-content {
+    flex: 1;
+    position: relative;
+    background: white;
+}
+
+.browser-loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--primary-bg);
+    z-index: 10;
+}
+
+.browser-loading p {
+    margin-top: 10px;
+    color: var(--text-color);
+}
+
+#browserIframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: white;
+}
+
+.browser-footer {
+    padding: 10px;
+    background: var(--header-bg);
+    border-top: 1px solid var(--border-color);
+    text-align: center;
+}
+
+/* Стили для ссылок в сообщениях */
+.message-link {
+    color: #4facfe;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 3px;
+    transition: all 0.2s ease;
+}
+
+.message-link:hover {
+    background: rgba(79, 172, 254, 0.1);
+    text-decoration: none;
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 768px) {
+    .browser-modal-content {
+        width: 100%;
+        height: 100%;
+        max-width: none;
+    }
+    
+    .browser-header {
+        flex-wrap: wrap;
+        padding: 5px;
+    }
+    
+    .browser-controls {
+        order: 1;
+    }
+    
+    .browser-url-bar {
+        order: 3;
+        flex-basis: 100%;
+        margin-top: 5px;
+    }
+    
+    .browser-close-btn {
+        order: 2;
+    }
+    
+    .browser-btn {
+        width: 35px;
+        height: 35px;
+    }
+}
+
+/* Анимации для браузера */
+@keyframes browserSlideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.8) translateY(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.modal.active .browser-modal-content {
+    animation: browserSlideIn 0.3s ease;
+}
