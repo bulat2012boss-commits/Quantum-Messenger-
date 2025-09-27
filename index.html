@@ -9,10 +9,6 @@
 <!-- После основного скрипта -->
 <script src="profile-color.js"></script>
 <!-- Новые функции для мессенджера -->
-<script src="image-upload.js"></script>
-<script src="gallery-viewer.js"></script>
-<script src="image-editor.js"></script>
-<script src="screenshot-tool.js"></script>
 <!-- Добавьте эти строки в head вашего index.html -->
 <link rel="stylesheet" href="level-system.css">
 <!-- После существующих стилей -->
@@ -7552,6 +7548,318 @@ function openSimpleBrowser() {
 
 // Запускаем при загрузке
 setTimeout(addSimpleBrowser, 2000);
+
+// ★★★ ФУНКЦИОНАЛ ОТПРАВКИ ИЗОБРАЖЕНИЙ ★★★
+function initImageUpload() {
+    // Создаем скрытый input для загрузки файлов
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/jpeg,image/png,image/gif';
+    fileInput.style.display = 'none';
+    fileInput.multiple = false; // Можно разрешить несколько файлов, изменив на true
+    document.body.appendChild(fileInput);
+    
+    // Создаем кнопку для загрузки изображений
+    const imageUploadBtn = document.createElement('button');
+    imageUploadBtn.className = 'action-btn';
+    imageUploadBtn.innerHTML = '<i class="fas fa-image"></i> <span>Фото</span>';
+    imageUploadBtn.id = 'imageUploadBtn';
+    
+    // Добавляем кнопку в интерфейс (рядом с кнопкой подарка)
+    const giftBtn = document.getElementById('giftBtn');
+    if (giftBtn && giftBtn.parentNode) {
+        giftBtn.parentNode.insertBefore(imageUploadBtn, giftBtn);
+    }
+    
+    // Обработчик клика по кнопке
+    imageUploadBtn.addEventListener('click', () => {
+        fileInput.click();
+    });
+    
+    // Обработчик выбора файла
+    fileInput.addEventListener('change', function(e) {
+        if (this.files && this.files[0]) {
+            const file = this.files[0];
+            
+            // Проверяем тип файла
+            if (!file.type.match('image/jpeg') && !file.type.match('image/png')) {
+                showNotification('Пожалуйста, выберите изображение в формате JPG или PNG');
+                return;
+            }
+            
+            // Проверяем размер файла (максимум 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                showNotification('Изображение должно быть меньше 5MB');
+                return;
+            }
+            
+            // Показываем превью и подтверждение отправки
+            previewImageBeforeSend(file);
+        }
+    });
+}
+
+// Функция предпросмотра изображения перед отправкой
+function previewImageBeforeSend(file) {
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        // Создаем модальное окно для предпросмотра
+        const previewModal = document.createElement('div');
+        previewModal.className = 'modal active';
+        previewModal.style.zIndex = '10000';
+        previewModal.innerHTML = `
+            <div class="modal-content" style="max-width: 400px;">
+                <h3>Предпросмотр изображения</h3>
+                <div class="image-preview-container">
+                    <img src="${e.target.result}" alt="Предпросмотр" style="max-width: 100%; max-height: 300px; border-radius: 10px;">
+                    <div class="image-info" style="margin-top: 10px; font-size: 12px; color: #666;">
+                        Размер: ${(file.size / 1024).toFixed(1)} KB
+                    </div>
+                </div>
+                <div class="modal-buttons" style="margin-top: 15px;">
+                    <button class="modal-btn secondary" id="cancelUploadBtn">Отмена</button>
+                    <button class="modal-btn primary" id="sendImageBtn">Отправить</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(previewModal);
+        
+        // Обработчики кнопок
+        document.getElementById('cancelUploadBtn').addEventListener('click', () => {
+            document.body.removeChild(previewModal);
+        });
+        
+        document.getElementById('sendImageBtn').addEventListener('click', () => {
+            uploadAndSendImage(file, e.target.result);
+            document.body.removeChild(previewModal);
+        });
+        
+        // Закрытие по клику вне окна
+        previewModal.addEventListener('click', (event) => {
+            if (event.target === previewModal) {
+                document.body.removeChild(previewModal);
+            }
+        });
+    };
+    
+    reader.readAsDataURL(file);
+}
+
+// Функция загрузки и отправки изображения
+function uploadAndSendImage(file, imageDataUrl) {
+    if (!currentUser) return;
+    
+    // Показываем уведомление о загрузке
+    showNotification('📤 Загружаем изображение...', 'info');
+    
+    // В реальном приложении здесь бы была загрузка на сервер
+    // Для демонстрации используем Data URL (base64)
+    
+    const timestamp = Date.now();
+    const fileName = `image_${timestamp}_${file.name}`;
+    
+    // Создаем миниатюру для предпросмотра
+    const thumbnail = createThumbnail(imageDataUrl, 200, 200);
+    
+    const messageData = {
+        type: 'image',
+        imageUrl: imageDataUrl, // В реальном приложении это был бы URL к файлу на сервере
+        thumbnail: thumbnail,
+        fileName: fileName,
+        fileSize: file.size,
+        name: currentUser,
+        userId: userId,
+        timestamp: timestamp,
+        isDeveloper: isDeveloper,
+        isTester: isTester,
+        userColor: userColor,
+        avatar: userAvatarUrl
+    };
+    
+    // Определяем путь для сообщения (общий или приватный чат)
+    let messagePath = 'messages';
+    if (isPrivateChatActive && privateChatWithUserId) {
+        messagePath = `privateMessages/${getPrivateChatId(userId, privateChatWithUserId)}`;
+        messageData.recipientId = privateChatWithUserId;
+        messageData.recipientName = privateChatWithUserName;
+    }
+    
+    // Отправляем сообщение с изображением
+    database.ref(messagePath).push(messageData, (error) => {
+        if (error) {
+            console.error("Ошибка отправки изображения:", error);
+            showNotification("Ошибка отправки изображения");
+        } else {
+            showNotification("📷 Изображение отправлено!");
+            
+            // Добавляем XP за отправку изображения
+            if (typeof addXP === 'function') {
+                addXP(15, 'отправка изображения');
+            }
+            
+            // Прокручиваем к последнему сообщению
+            scrollToBottom();
+        }
+    });
+}
+
+// Функция создания миниатюры
+function createThumbnail(dataUrl, maxWidth, maxHeight) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Рассчитываем размеры для миниатюры
+            let width = img.width;
+            let height = img.height;
+            
+            if (width > height) {
+                if (width > maxWidth) {
+                    height = Math.round(height * maxWidth / width);
+                    width = maxWidth;
+                }
+            } else {
+                if (height > maxHeight) {
+                    width = Math.round(width * maxHeight / height);
+                    height = maxHeight;
+                }
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', 0.7));
+        };
+        img.src = dataUrl;
+    });
+}
+
+// Функция отображения изображений в чате
+function displayImageMessage(message) {
+    const messageElement = document.createElement('div');
+    const isMyMessage = message.userId === userId;
+    
+    messageElement.classList.add('message');
+    messageElement.classList.add(isMyMessage ? 'my-message' : 'other-message');
+    messageElement.dataset.id = message.id;
+    
+    // Форматируем время
+    const time = new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    
+    // Создаем HTML для отправителя
+    let senderHTML = '';
+    if (!isMyMessage) {
+        let avatarContent = '';
+        if (message.avatar) {
+            if (message.avatar.startsWith('http') || message.avatar.startsWith('data:')) {
+                avatarContent = `<img src="${message.avatar}" class="avatar-img">`;
+            } else {
+                avatarContent = message.avatar;
+            }
+        } else {
+            avatarContent = message.name.charAt(0).toUpperCase();
+        }
+        
+        senderHTML = `
+            <div class="sender" onclick="showUserProfile('${message.userId}')">
+                <div class="user-avatar" style="background: ${message.userColor || '#4facfe'}">
+                    ${avatarContent}
+                </div>
+                ${message.name}
+        `;
+        if (message.isDeveloper) {
+            senderHTML += `<span class="verified-badge">✓</span> <span class="developer-badge">Разработчик</span>`;
+        }
+        if (message.isTester) {
+            senderHTML += `<span class="tester-badge">Тестер</span>`;
+        }
+        senderHTML += `</div>`;
+    }
+    
+    // Создаем HTML для изображения
+    const imageHTML = `
+        <div class="image-message-container">
+            <img src="${message.thumbnail || message.imageUrl}" 
+                 alt="Изображение" 
+                 class="message-image"
+                 onclick="openImageFullscreen('${message.imageUrl}')">
+            <div class="image-info">
+                <span class="file-name">${message.fileName || 'image.jpg'}</span>
+                <span class="file-size">(${(message.fileSize / 1024).toFixed(1)} KB)</span>
+            </div>
+        </div>
+    `;
+    
+    // Заполняем содержимое сообщения
+    messageElement.innerHTML = `
+        ${senderHTML}
+        ${imageHTML}
+        <div class="timestamp">${time}</div>
+    `;
+    
+    return messageElement;
+}
+
+// Функция открытия изображения в полном размере
+function openImageFullscreen(imageUrl) {
+    const fullscreenModal = document.createElement('div');
+    fullscreenModal.className = 'modal active';
+    fullscreenModal.style.zIndex = '10000';
+    fullscreenModal.style.background = 'rgba(0, 0, 0, 0.9)';
+    fullscreenModal.innerHTML = `
+        <div class="modal-content" style="background: transparent; border: none; box-shadow: none; max-width: 90vw; max-height: 90vh;">
+            <button class="modal-btn secondary" style="position: absolute; top: 10px; right: 10px; z-index: 10001;" id="closeFullscreenBtn">
+                <i class="fas fa-times"></i>
+            </button>
+            <img src="${imageUrl}" alt="Изображение" style="max-width: 100%; max-height: 100%; border-radius: 10px;">
+        </div>
+    `;
+    
+    document.body.appendChild(fullscreenModal);
+    
+    // Обработчик закрытия
+    document.getElementById('closeFullscreenBtn').addEventListener('click', () => {
+        document.body.removeChild(fullscreenModal);
+    });
+    
+    // Закрытие по клику вне изображения
+    fullscreenModal.addEventListener('click', (event) => {
+        if (event.target === fullscreenModal) {
+            document.body.removeChild(fullscreenModal);
+        }
+    });
+}
+
+// Модифицируем функцию addMessageToChat для поддержки изображений
+const originalAddMessageToChat = window.addMessageToChat;
+window.addMessageToChat = function(message) {
+    if (message.type === 'image') {
+        // Обработка сообщений с изображениями
+        if (messagesContainer.querySelector('.empty-chat')) {
+            messagesContainer.innerHTML = '';
+        }
+        
+        const messageElement = displayImageMessage(message);
+        messagesContainer.appendChild(messageElement);
+        
+        // Автопрокрутка к последнему сообщению
+        const isScrolledToBottom = messagesContainer.scrollHeight - messagesContainer.clientHeight <= messagesContainer.scrollTop + 100;
+        if (isScrolledToBottom || message.userId === userId) {
+            scrollToBottom();
+        }
+    } else {
+        // Стандартная обработка текстовых сообщений
+        originalAddMessageToChat(message);
+    }
+};
+
+// Инициализация при загрузке
+setTimeout(initImageUpload, 2000);
     </script>
     <!-- Модальное окно настроек -->
 <div class="modal" id="settingsModal">
@@ -7739,8 +8047,9 @@ setTimeout(addSimpleBrowser, 2000);
         </div>
     </div>
 </div>
-<!-- Подключаем модальные окна каналов -->
+
 <!-- После существующих скриптов -->
 <script src="browser.js"></script>
+
 </body>
 </html>
