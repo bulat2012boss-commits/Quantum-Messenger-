@@ -6,6 +6,8 @@ class LevelSystem {
         this.userXP = parseInt(localStorage.getItem('quantumUserXP')) || 0;
         this.userRank = localStorage.getItem('quantumUserRank') || 'Новичок';
         this.userCoins = parseInt(localStorage.getItem('quantumUserCoins')) || 100;
+        this.lastActivityTime = parseInt(localStorage.getItem('quantumLastActivityTime')) || Date.now();
+        this.isActive = false;
         
         this.ranks = [
             { name: 'Новичок', minLevel: 1, color: '#95afc0', icon: '🌱' },
@@ -31,6 +33,7 @@ class LevelSystem {
         this.createLevelBadge();
         this.setupEventListeners();
         this.checkDailyReward();
+        this.setupActivityTracking();
     }
     
     // Создание бейджа уровня
@@ -76,12 +79,28 @@ class LevelSystem {
         `;
     }
     
-    // Добавление XP
+    // Добавление XP с защитой от фарма
     addXP(amount, reason = 'активность') {
         if (!currentUser) return;
         
+        // Защита от быстрого фарма
+        const now = Date.now();
+        const timeSinceLastXP = now - this.lastActivityTime;
+        
+        // Минимальное время между начислениями XP - 30 секунд
+        if (timeSinceLastXP < 30000 && reason === 'активность в чате') {
+            return;
+        }
+        
+        // Для сообщений - ограничение 1 XP в минуту
+        if (reason === 'отправка сообщения' && timeSinceLastXP < 60000) {
+            return;
+        }
+        
         const oldLevel = this.userLevel;
         this.userXP += amount;
+        this.lastActivityTime = now;
+        localStorage.setItem('quantumLastActivityTime', now);
         
         // Показываем всплывающее уведомление о получении XP
         this.showXPPopup(amount, reason);
@@ -346,34 +365,67 @@ class LevelSystem {
         this.closeLevelModal();
     }
     
+    // Настройка отслеживания активности
+    setupActivityTracking() {
+        // Отслеживаем активность пользователя
+        document.addEventListener('mousemove', this.handleUserActivity.bind(this));
+        document.addEventListener('keypress', this.handleUserActivity.bind(this));
+        document.addEventListener('click', this.handleUserActivity.bind(this));
+        
+        // Проверяем активность каждую минуту
+        setInterval(() => {
+            this.checkActiveStatus();
+        }, 60000);
+    }
+    
+    handleUserActivity() {
+        this.isActive = true;
+        this.lastActivityTime = Date.now();
+    }
+    
+    checkActiveStatus() {
+        const now = Date.now();
+        const inactiveTime = now - this.lastActivityTime;
+        
+        // Если пользователь неактивен более 5 минут, сбрасываем статус
+        if (inactiveTime > 300000) { // 5 минут
+            this.isActive = false;
+        }
+        
+        // Начисляем XP только если пользователь активен
+        if (this.isActive) {
+            this.addXP(1, 'активность в чате');
+        }
+    }
+    
     // Вспомогательные методы
     calculateXPNeeded(level) {
         return Math.floor(100 * Math.pow(1.2, level - 1));
     }
     
     getCurrentRank() {
-        return this.ranks.find(rank => this.userLevel >= rank.minLevel) || this.ranks[0];
+        return this.ranks.slice().reverse().find(rank => this.userLevel >= rank.minLevel) || this.ranks[0];
     }
     
     getNextRank() {
-        return this.ranks.find(rank => this.userLevel < rank.minLevel);
-    }
-    
-    checkLevelRewards(level) {
-        if (this.levelRewards[level]) {
-            const reward = this.levelRewards[level];
-            this.addCoins(reward.coins);
-            this.showNotification(reward.message, 'success');
-        }
+        const currentRankIndex = this.ranks.findIndex(rank => rank.name === this.userRank);
+        return currentRankIndex < this.ranks.length - 1 ? this.ranks[currentRankIndex + 1] : null;
     }
     
     checkNewRank() {
-        const newRank = this.ranks.find(rank => this.userLevel >= rank.minLevel) || this.ranks[0];
-        
+        const newRank = this.getCurrentRank();
         if (newRank.name !== this.userRank) {
             this.userRank = newRank.name;
             this.saveData();
-            this.showNotification(`🎖️ Новый ранг: ${this.userRank}`, 'success');
+            this.showNotification(`🎉 Новый ранг: ${newRank.name}!`, 'success');
+        }
+    }
+    
+    checkLevelRewards(level) {
+        const reward = this.levelRewards[level];
+        if (reward) {
+            this.addCoins(reward.coins);
+            this.showNotification(reward.message, 'success');
         }
     }
     
@@ -382,8 +434,9 @@ class LevelSystem {
         const lastClaim = localStorage.getItem('lastDailyClaim');
         
         if (lastClaim !== today) {
+            // Показываем уведомление о доступной награде
             setTimeout(() => {
-                this.showNotification("Не забудьте получить ежедневную награду! 🎁", 'info');
+                this.showNotification("🎁 Доступна ежедневная награда! Нажмите на бейдж уровня.", 'info');
             }, 5000);
         }
     }
@@ -403,428 +456,58 @@ class LevelSystem {
     }
     
     showNotification(message, type = 'info') {
-        // Используем существующую функцию showNotification или создаем новую
-        if (typeof showNotification === 'function') {
+        // Используем существующую систему уведомлений или создаем простую
+        if (window.showNotification) {
             showNotification(message, type);
         } else {
-            console.log(`${type}: ${message}`);
+            console.log(`[${type.toUpperCase()}] ${message}`);
         }
     }
     
+    addLevelBadgeStyles() {
+        if (document.getElementById('levelSystemStyles')) return;
+        
+        const styleLink = document.createElement('link');
+        styleLink.id = 'levelSystemStyles';
+        styleLink.rel = 'stylesheet';
+        styleLink.href = 'level-system.css';
+        document.head.appendChild(styleLink);
+    }
+    
     setupEventListeners() {
-        // Обработчики для кликабельных элементов
-        document.addEventListener('click', (e) => {
-            if (e.target.closest('.level-badge')) {
-                this.showLevelModal();
+        // Слушатель для отправки сообщений
+        document.addEventListener('DOMContentLoaded', () => {
+            const messageInput = document.querySelector('.message-input');
+            const sendButton = document.querySelector('.send-button');
+            
+            if (messageInput) {
+                messageInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && messageInput.value.trim()) {
+                        this.addXP(5, 'отправка сообщения');
+                    }
+                });
+            }
+            
+            if (sendButton) {
+                sendButton.addEventListener('click', () => {
+                    if (messageInput && messageInput.value.trim()) {
+                        this.addXP(5, 'отправка сообщения');
+                    }
+                });
             }
         });
     }
     
-    addLevelBadgeStyles() {
-        const styles = `
-            <style>
-                .level-badge {
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    background: rgba(0, 0, 0, 0.3);
-                    padding: 8px 12px;
-                    border-radius: 20px;
-                    font-size: 12px;
-                    margin-left: 10px;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    position: relative;
-                }
-                
-                .level-badge:hover {
-                    background: rgba(0, 0, 0, 0.5);
-                    transform: translateY(-2px);
-                    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-                }
-                
-                .rank-info, .coins-info {
-                    display: flex;
-                    align-items: center;
-                    gap: 5px;
-                    padding: 4px 8px;
-                    border-radius: 10px;
-                    background: rgba(255, 255, 255, 0.1);
-                    transition: background 0.3s ease;
-                }
-                
-                .rank-info:hover, .coins-info:hover {
-                    background: rgba(255, 255, 255, 0.2);
-                }
-                
-                .level-info {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    gap: 3px;
-                }
-                
-                .level-text {
-                    font-weight: bold;
-                    font-size: 11px;
-                }
-                
-                .xp-container {
-                    display: flex;
-                    align-items: center;
-                    gap: 5px;
-                }
-                
-                .xp-bar {
-                    width: 40px;
-                    height: 4px;
-                    background: rgba(255, 255, 255, 0.3);
-                    border-radius: 2px;
-                    overflow: hidden;
-                }
-                
-                .xp-progress {
-                    height: 100%;
-                    background: linear-gradient(90deg, #00b894, #00cec9);
-                    border-radius: 2px;
-                    transition: width 0.5s ease;
-                }
-                
-                .xp-text {
-                    font-size: 9px;
-                    opacity: 0.8;
-                }
-                
-                .rank-icon, .coins-icon {
-                    font-size: 14px;
-                }
-                
-                .rank-name {
-                    font-size: 10px;
-                    font-weight: bold;
-                }
-                
-                .coins-amount {
-                    font-size: 10px;
-                    font-weight: bold;
-                }
-                
-                /* Анимации */
-                .xp-popup {
-                    position: absolute;
-                    top: -30px;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    background: rgba(0, 0, 0, 0.8);
-                    padding: 5px 10px;
-                    border-radius: 15px;
-                    font-size: 10px;
-                    opacity: 0;
-                    transition: all 0.3s ease;
-                    pointer-events: none;
-                    white-space: nowrap;
-                }
-                
-                .xp-popup.show {
-                    opacity: 1;
-                    top: -40px;
-                }
-                
-                .xp-icon {
-                    color: #ffeaa7;
-                }
-                
-                .xp-amount {
-                    font-weight: bold;
-                    color: #00b894;
-                }
-                
-                .xp-reason {
-                    opacity: 0.8;
-                    font-size: 9px;
-                }
-                
-                .coins-animation {
-                    position: absolute;
-                    top: -25px;
-                    right: 0;
-                    opacity: 0;
-                    transition: all 0.3s ease;
-                }
-                
-                .coins-animation.show {
-                    opacity: 1;
-                    top: -35px;
-                }
-                
-                .coins-content {
-                    display: flex;
-                    align-items: center;
-                    gap: 3px;
-                    background: rgba(255, 193, 7, 0.2);
-                    padding: 3px 6px;
-                    border-radius: 10px;
-                    font-size: 10px;
-                }
-                
-                /* Модальное окно уровней */
-                .level-modal-content {
-                    max-width: 400px;
-                    background: linear-gradient(135deg, #0f2027, #203a43);
-                }
-                
-                .level-modal-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 20px;
-                }
-                
-                .modal-close {
-                    background: none;
-                    border: none;
-                    color: var(--text-color);
-                    font-size: 24px;
-                    cursor: pointer;
-                    padding: 0;
-                    width: 30px;
-                    height: 30px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    border-radius: 50%;
-                    transition: background 0.3s ease;
-                }
-                
-                .modal-close:hover {
-                    background: rgba(255, 255, 255, 0.1);
-                }
-                
-                .level-stats {
-                    display: grid;
-                    grid-template-columns: repeat(3, 1fr);
-                    gap: 15px;
-                    margin-bottom: 20px;
-                }
-                
-                .stat-item {
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                    padding: 15px;
-                    background: rgba(255, 255, 255, 0.1);
-                    border-radius: 10px;
-                    text-align: left;
-                }
-                
-                .stat-icon {
-                    font-size: 24px;
-                }
-                
-                .stat-value {
-                    font-size: 18px;
-                    font-weight: bold;
-                }
-                
-                .stat-label {
-                    font-size: 11px;
-                    opacity: 0.8;
-                }
-                
-                .progress-section {
-                    margin-bottom: 20px;
-                }
-                
-                .progress-header {
-                    display: flex;
-                    justify-content: space-between;
-                    margin-bottom: 8px;
-                    font-size: 12px;
-                }
-                
-                .xp-bar-large {
-                    width: 100%;
-                    height: 8px;
-                    background: rgba(255, 255, 255, 0.2);
-                    border-radius: 4px;
-                    overflow: hidden;
-                    margin-bottom: 5px;
-                }
-                
-                .xp-progress-large {
-                    height: 100%;
-                    background: linear-gradient(90deg, #00b894, #00cec9);
-                    border-radius: 4px;
-                    transition: width 1s ease;
-                }
-                
-                .progress-percentage {
-                    text-align: right;
-                    font-size: 11px;
-                    opacity: 0.8;
-                }
-                
-                .next-rank-section {
-                    background: rgba(255, 255, 255, 0.05);
-                    padding: 15px;
-                    border-radius: 10px;
-                    margin-bottom: 20px;
-                }
-                
-                .next-rank-header {
-                    display: flex;
-                    justify-content: space-between;
-                    margin-bottom: 10px;
-                    font-size: 12px;
-                }
-                
-                .next-rank-info {
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                    margin-bottom: 5px;
-                }
-                
-                .next-rank-icon {
-                    font-size: 20px;
-                }
-                
-                .next-rank-name {
-                    font-weight: bold;
-                }
-                
-                .levels-remaining {
-                    font-size: 11px;
-                    opacity: 0.8;
-                }
-                
-                .level-actions {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 10px;
-                }
-                
-                .level-action-btn {
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    padding: 12px;
-                    background: rgba(255, 255, 255, 0.1);
-                    border: none;
-                    border-radius: 8px;
-                    color: var(--text-color);
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                    font-size: 12px;
-                }
-                
-                .level-action-btn:hover {
-                    background: rgba(255, 255, 255, 0.2);
-                    transform: translateY(-2px);
-                }
-                
-                /* Анимация повышения уровня */
-                .level-up-animation {
-                    position: fixed;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    z-index: 10000;
-                    pointer-events: none;
-                }
-                
-                .level-up-content {
-                    background: linear-gradient(135deg, #6a11cb, #2575fc);
-                    padding: 30px 40px;
-                    border-radius: 20px;
-                    text-align: center;
-                    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-                    position: relative;
-                    overflow: hidden;
-                    animation: levelUpScale 0.5s ease;
-                }
-                
-                .confetti {
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text x="50" y="50" font-size="10">🎊</text></svg>') repeat;
-                    opacity: 0.3;
-                    animation: confettiFall 2s linear infinite;
-                }
-                
-                .level-up-icon {
-                    font-size: 48px;
-                    margin-bottom: 10px;
-                    animation: bounce 1s infinite;
-                }
-                
-                .level-up-title {
-                    font-size: 18px;
-                    font-weight: bold;
-                    margin-bottom: 10px;
-                }
-                
-                .level-up-numbers {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 15px;
-                    font-size: 24px;
-                }
-                
-                .old-level {
-                    opacity: 0.7;
-                }
-                
-                .arrow {
-                    animation: pulse 1s infinite;
-                }
-                
-                .new-level {
-                    font-size: 32px;
-                    font-weight: bold;
-                    color: #ffeaa7;
-                    animation: glow 1s infinite alternate;
-                }
-                
-                .fade-out {
-                    opacity: 0;
-                    transition: opacity 0.5s ease;
-                }
-                
-                @keyframes levelUpScale {
-                    0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-                    70% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
-                    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-                }
-                
-                @keyframes confettiFall {
-                    0% { transform: translateY(-100px) rotate(0deg); }
-                    100% { transform: translateY(100px) rotate(360deg); }
-                }
-                
-                @keyframes bounce {
-                    0%, 100% { transform: translateY(0); }
-                    50% { transform: translateY(-10px); }
-                }
-                
-                @keyframes pulse {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.5; }
-                }
-                
-                @keyframes glow {
-                    0% { text-shadow: 0 0 5px #ffeaa7; }
-                    100% { text-shadow: 0 0 20px #ffeaa7, 0 0 30px #ffd700; }
-                }
-            </style>
-        `;
-        
-        document.head.insertAdjacentHTML('beforeend', styles);
+    // Метод для отладки (можно удалить в продакшене)
+    debugInfo() {
+        console.log({
+            level: this.userLevel,
+            xp: this.userXP,
+            rank: this.userRank,
+            coins: this.userCoins,
+            isActive: this.isActive,
+            lastActivity: new Date(this.lastActivityTime)
+        });
     }
 }
 
@@ -834,26 +517,15 @@ let levelSystem;
 function initLevelSystem() {
     levelSystem = new LevelSystem();
     
-    // Интеграция с существующей системой
-    if (typeof addXP === 'function') {
-        const originalAddXP = addXP;
-        addXP = function(amount, reason) {
-            originalAddXP(amount, reason);
-            if (levelSystem) {
-                levelSystem.addXP(amount, reason);
-            }
-        };
-    }
-    
-    // Добавляем XP за различные действия
+    // Добавляем XP при входе в чат (только если пользователь активен)
     setTimeout(() => {
-        if (currentUser) {
+        if (currentUser && levelSystem.isActive) {
             levelSystem.addXP(10, 'вход в чат');
         }
     }, 2000);
 }
 
-// Запускаем систему при загрузке
+// Запускаем систему уровней при загрузке
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initLevelSystem);
 } else {
