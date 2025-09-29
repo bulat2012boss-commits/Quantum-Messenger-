@@ -6,6 +6,9 @@
     <title>Quantum Messenger</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="stylesheet" href="animations.css">
+<link rel="stylesheet" href="telegram-animations.css">
+<link rel="stylesheet" href="ui-minimal.css">
+
 <!-- После основного скрипта -->
 <script src="profile-color.js"></script>
 <!-- Новые функции для мессенджера -->
@@ -15,8 +18,14 @@
 <link rel="stylesheet" href="browser.css">
 <!-- Добавьте этот скрипт перед закрывающим тегом body -->
 <script src="level-system.js"></script>
+<script src="moderation-system.js"></script>
 <script src="enhanced-auth.js"></script>
 <script src="music-player.js"></script>
+<script src="moderation-system.js"></script>
+<!-- В секции head или перед закрывающим тегом body -->
+<script src="community-channels.js"></script>
+<!-- Манифест для PWA -->
+<link rel="manifest" href="manifest.json">
     <style>
         * {
             margin: 0;
@@ -8050,6 +8059,15 @@ setTimeout(initImageUpload, 2000);
 
 <!-- После существующих скриптов -->
 <script src="browser.js"></script>
-
+<script src="shop-system.js"></script>
+<!-- После существующих скриптов -->
+<script src="reactions-system.js"></script>
+<script src="bad-words-filter.js"></script>
+<script src="ui-minimal.js"></script>
+<!-- Подключаем систему каналов -->
+<script src="channels.js"></script>
+<script src="telegram-layout.js"></script>
+<!-- Подключение Capacitor Wrapper -->
+<script src="capacitor-wrapper.js"></script>
 </body>
 </html>
